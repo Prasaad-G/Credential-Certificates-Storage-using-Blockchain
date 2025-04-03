@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Photo Upload and Retrieve</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            padding: 20px;
+        }
+        h1 {
+            margin-bottom: 20px;
+        }
+        .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            width: 400px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        input[type="file"],
+        input[type="text"] {
+            margin: 10px 0;
+            width: 100%;
+        }
+        button {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 5px;
+            background-color: #007BFF;
+            color: white;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            width: 100%;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .hash-display {
+            margin-top: 10px;
+            background-color: #f7f7f7;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 10px;
+            display: none; /* Initially hidden */
+            word-wrap: break-word; /* Allow breaking of long words */
+        }
+        .copy-button {
+            margin-left: 10px;
+            padding: 5px 10px;
+            background-color: #28a745;
+        }
+        .copy-button:hover {
+            background-color: #218838;
+        }
+        .image-display {
+            margin-top: 20px;
+            display: none; /* Hide initially */
+        }
+        img {
+            max-width: 100%; /* Ensure images are responsive */
+            border-radius: 8px; /* Add rounded corners */
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Upload Photo</h1>
+        <input type="file" id="photoInput" accept="image/*">
+        <button onclick="uploadPhoto()">Upload</button>
+        <div id="hashDisplay" class="hash-display"></div>
+    </div>
+
+    <div class="container">
+        <h1>Retrieve Photo</h1>
+        <input type="text" id="hashInput" placeholder="Enter hash">
+        <button onclick="retrievePhoto()">Retrieve</button>
+        <div id="imageDisplay" class="image-display">
+            <h3>Uploaded Photo:</h3>
+            <img id="retrievedImage" src="" alt="Retrieved Photo">
+        </div>
+    </div>
+
+    <script>
+        async function uploadPhoto() {
+            const fileInput = document.getElementById('photoInput');
+            const file = fileInput.files[0];
+
+            if (!file) {
+                alert('Please select a file to upload.');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('photo', file);
+
+            try {
+                const response = await fetch('http://localhost:3000/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    const hashDisplay = document.getElementById('hashDisplay');
+                    hashDisplay.style.display = 'block';
+                    hashDisplay.innerHTML = `
+                        Hash: <span id="hashValue">${data.hash}</span>
+                        <button class="copy-button" onclick="copyHash()">Copy Hash</button>
+                    `;
+                } else {
+                    alert(data.message);
+                }
+            } catch (error) {
+                alert('An error occurred while uploading photos. Please try again.');
+                console.error('Upload error:', error);
+            }
+        }
+
+        function copyHash() {
+            const hashValue = document.getElementById('hashValue').textContent;
+            navigator.clipboard.writeText(hashValue).then(() => {
+                alert('Hash copied to clipboard!');
+            });
+        }
+
+        async function retrievePhoto() {
+            const hashInput = document.getElementById('hashInput').value;
+
+            if (!hashInput) {
+                alert('Please enter a hash to retrieve the photo.');
+                return;
+            }
+
+            try {
+                const response = await fetch(`http://localhost:3000/retrieve/${hashInput}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    const imageDisplay = document.getElementById('imageDisplay');
+                    const retrievedImage = document.getElementById('retrievedImage');
+                    retrievedImage.src = data.photoUrl; 
+                    imageDisplay.style.display = 'block'; 
+                } else {
+                    alert(data.message);
+                }
+            } catch (error) {
+                alert('An error occurred while retrieving the photo.');
+                console.error('Retrieve error:', error);
+            }
+        }
+    </script>
+</body>
+</html>
